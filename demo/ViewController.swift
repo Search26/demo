@@ -117,17 +117,7 @@ class ViewController: UIViewController {
         let touch = touches.first
         
         guard let point = touch?.location(in: self.view) else { return }
-        let isOnTopPart = self.checkIsTopPart(point)
         let isOnRightPart = self.checkIsOnRightPart(point)
-        //prevent drag from 0% -> 99%
-        if self.checkIsTopPart(self.latsPosition) && self.checkIsOnRightPart(self.latsPosition) && isOnTopPart && !isOnRightPart {
-            self.isDragging = false
-            self.resetView()
-        }
-        
-        if self.checkIsTopPart(self.latsPosition) && !self.checkIsOnRightPart(self.latsPosition) && isOnTopPart && isOnRightPart {
-            self.isDragging = true
-        }
         
         self.latsPosition = point
         if !isDragging { return }
@@ -140,6 +130,10 @@ class ViewController: UIViewController {
             self.drawCircle(endAngle: angle, point: endPoint)
         } else {
             let angle = calculateAngleBetweenLines(A: (centerCircle.x, centerCircle.y), B: (defaultBottomPosition.x, defaultBottomPosition.y), C: (point.x, point.y)) + Double.pi
+            if ceil(angle / (2 * .pi) * 100) == 100 {
+                self.fullView()
+                return
+            }
             self.setPercent(Int(angle / (2 * .pi) * 100))
             guard let endPoint = self.intersectionOfCircleAndLine(C: (centerCircle.x, centerCircle.y), radius: radius, D: (point.x, point.y), angle: angle - Double.pi, defaultPoint: defaultBottomPosition) else { return }
             print(endPoint)
@@ -159,6 +153,12 @@ class ViewController: UIViewController {
         self.drawCircle(point: defaultPosition)
     }
     
+    func fullView() {
+        self.centerCircle = CGPoint(x: self.view.frame.midX, y: self.view.frame.midY)
+        self.setPercent(100)
+        self.drawCircle(endAngle: 2 * .pi, point: defaultPosition)
+    }
+    
     func setPercent(_ percent: Int) {
         self.radius1 = CGFloat(percent) * radius / 100
         self.percentView.frame = CGRect(origin: .zero, size: CGSize(width: radius1 * 2, height: radius1 * 2))
@@ -176,12 +176,6 @@ extension ViewController {
         return false
     }
     
-    func checkIsTopPart(_ point: CGPoint) -> Bool {
-        if point.y <= self.centerCircle.y {
-            return true
-        }
-        return false
-    }
     
     func calculateAngleBetweenLines(A: (Double, Double), B: (Double, Double), C: (Double, Double)) -> Double {
         let vectorAB = (B.0 - A.0, B.1 - A.1)
